@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=test_gpu
-#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/camelyon_results/camil_sb.txt
-#SBATCH --error=/home/ofourkioti/Projects/camil_clustering/camelyon_results/error.err
+#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/results/camil_sb.txt
+#SBATCH --error=/home/ofourkioti/Projects/camil_clustering/results/error.err
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
 #SBATCH --time=72:00:00
 #SBATCH --gres=gpu:1
-#SBATCH --partition=gpuhm
+#SBATCH --partition=gpu
 
 module use /opt/software/easybuild/modules/all/
 module load Mamba
