@@ -16,7 +16,7 @@ cd /home/ofourkioti/Projects/camil_clustering/
 
 for i in {0..3};
 do
-python run.py  --experiment_name camil_sb  --adj_shape 13 --feature_path /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/cam-17/feats/h5_files/ --label_file label_files/camelyon_17.csv --csv_file camelyon_17_splits/splits_${i}.csv   --k_sample 8 --single_branch;
+python run.py  --experiment_name camil_sb   --feature_path /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/cam-17/feats/h5_files/ --label_file label_files/camelyon_17.csv --csv_file camelyon_17_splits/splits_${i}.csv   --k_sample 8 --single_branch;
 done
 #python run_simclr.py --simclr_path  lipo_SIMCLR_checkpoints --feature_path /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/multi_magnification_project/SAR_data/simclr_imgs/h5_files/  --csv_file lipo_csv_files/splits_0.csv --simclr_batch_size 1024
 #/data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/camelyon17/images/
