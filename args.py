@@ -43,7 +43,7 @@ def parse_args():
     parser.add_argument('--overlap', type=float, default=None)
     parser.add_argument('--config_file', type=str, default="heatmap_config_camelyon.yaml")
     parser.add_argument('--subtyping', dest="subtyping",action='store_true', default=False)
-    parser.add_argument('--single_branch', dest="single_branch", action='store_true', default=True)
+    parser.add_argument('--single_branch', dest="single_branch", action='store_true', default=False)
     parser.add_argument('--k_sample', dest='k_sample', default=8, type=int)
     parser.add_argument('--n_classes', dest='n_classes', default=2, type=int)
 
