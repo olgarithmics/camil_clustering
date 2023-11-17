@@ -42,6 +42,7 @@ class CHARM:
         self.dense = tf.keras.layers.Dense(512, activation='relu')
 
         self.single_branch= args.single_branch
+        self.pooling=args.pooling
 
         if self.single_branch:
             self.classifier=tf.keras.layers.Dense(1)
@@ -78,7 +79,7 @@ class CHARM:
         # attn_output = tf.matmul (k_alpha ,xo,transpose_a=True)
 
         #logits = self.classifier(attn_output)
-        logits= Feature_pooling(output_dim=1, pooling_mode = 'max')(dense)
+        logits= Feature_pooling(output_dim=1, pooling_mode = self.pooling)(dense)
 
         self.net = Model(inputs=[self.inputs['bag'], self.inputs["adjacency_matrix"], self.inputs["g_t"]], outputs=[logits, logits, logits])
 
