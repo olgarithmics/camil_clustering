@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Input, Dense, multiply
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from dataset_utils.camelyon_batch_generator import DataGenerator
-from training.custom_layers import NeighborAggregator, CustomAttention, Last_Sigmoid, MILAttentionLayer, ClusteringLayer
+from training.custom_layers import NeighborAggregator, CustomAttention, Last_Sigmoid, MILAttentionLayer, ClusteringLayer, Feature_pooling
 from flushed_print import print
 import time
 from collections import deque
@@ -39,6 +39,8 @@ class CHARM:
         self.k_sample = args.k_sample
         self.n_classes = args.n_classes
 
+        self.dense = tf.keras.layers.Dense(512, activation='relu')
+
         self.single_branch= args.single_branch
 
         if self.single_branch:
@@ -55,29 +57,30 @@ class CHARM:
             'adjacency_matrix': Input(shape=(None, None), dtype='float32', name='adjacency_matrix', sparse=True),
             'g_t': Input(shape=(1,), name='g_t')
         }
-        dense = self.inputs['bag']
+        dense = self.dense(self.inputs['bag'])
 
-        encoder_output = self.nyst_att(tf.expand_dims(dense, axis=0), return_attn=False)
-        xg = tf.ensure_shape(tf.squeeze(encoder_output), [None, 512])
-
-        encoder_output = xg + dense
-
-        attention_matrix = CustomAttention(weight_params_dim=256)(encoder_output)
-        norm_alpha, alpha = NeighborAggregator(output_dim=1, name="alpha")([attention_matrix, self.inputs["adjacency_matrix"]])
-        value = self.wv(dense)
-        xl = multiply([norm_alpha, value], name="mul_1")
-
-        wei = tf.math.sigmoid(xl)
-        xo = xl * wei + encoder_output * (1-wei)
+        # encoder_output = self.nyst_att(tf.expand_dims(dense, axis=0), return_attn=False)
+        # xg = tf.ensure_shape(tf.squeeze(encoder_output), [None, 512])
+        #
+        # encoder_output = xg + dense
+        #
+        # attention_matrix = CustomAttention(weight_params_dim=256)(encoder_output)
+        # norm_alpha, alpha = NeighborAggregator(output_dim=1, name="alpha")([attention_matrix, self.inputs["adjacency_matrix"]])
+        # value = self.wv(dense)
+        # xl = multiply([norm_alpha, value], name="mul_1")
+        #
+        # wei = tf.math.sigmoid(xl)
+        # xo = xl * wei + encoder_output * (1-wei)
 
         #encoder_output = xl + dense
 
-        k_alpha = self.attcls(xo)
-        attn_output = tf.matmul (k_alpha ,xo,transpose_a=True)
+        # k_alpha = self.attcls(xo)
+        # attn_output = tf.matmul (k_alpha ,xo,transpose_a=True)
 
-        logits = self.classifier(attn_output)
+        #logits = self.classifier(attn_output)
+        logits= Feature_pooling(output_dim=1, pooling_mode = 'max')(dense)
 
-        self.net = Model(inputs=[self.inputs['bag'], self.inputs["adjacency_matrix"], self.inputs["g_t"]], outputs=[logits, attn_output, k_alpha])
+        self.net = Model(inputs=[self.inputs['bag'], self.inputs["adjacency_matrix"], self.inputs["g_t"]], outputs=[logits, logits, logits])
 
     @property
     def model(self):
@@ -184,19 +187,19 @@ class CHARM:
                 one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
 
                 total_inst_loss=0
-                for i in range(self.n_classes):
-                    inst_label = tf.gather(one_hot_label, i, axis=1)
-                    if self.single_branch:
-                        loss = tf.cond(tf.equal(tf.squeeze(inst_label),1),
-                                lambda : inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-                                lambda : tf.cast(0, tf.float32) )
-                    else:
-                        loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
-                                       lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-                                       lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
-
-
-                    total_inst_loss += loss
+                # for i in range(self.n_classes):
+                #     inst_label = tf.gather(one_hot_label, i, axis=1)
+                #     if self.single_branch:
+                #         loss = tf.cond(tf.equal(tf.squeeze(inst_label),1),
+                #                 lambda : inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+                #                 lambda : tf.cast(0, tf.float32) )
+                #     else:
+                #         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
+                #                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+                #                        lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
+                #
+                #
+                #     total_inst_loss += loss
 
                 if self.subtyping:
                     total_inst_loss /= len(self.instance_classifiers)
@@ -224,19 +227,19 @@ class CHARM:
             one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
 
             total_inst_loss = 0
-            for i in range(self.n_classes):
-                inst_label = tf.gather(one_hot_label, i, axis=1)
-
-                if self.single_branch:
-                    loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
-                                   lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-                                   lambda: tf.cast(0, tf.float32))
-                else:
-                    loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
-                                   lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-                                   lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
-
-                total_inst_loss += loss
+            # for i in range(self.n_classes):
+            #     inst_label = tf.gather(one_hot_label, i, axis=1)
+            #
+            #     if self.single_branch:
+            #         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
+            #                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+            #                        lambda: tf.cast(0, tf.float32))
+            #     else:
+            #         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
+            #                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+            #                        lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
+            #
+            #     total_inst_loss += loss
 
             if self.subtyping:
                 total_inst_loss /= len(self.instance_classifiers)
@@ -321,7 +324,6 @@ class CHARM:
         auc       : float reffering to the transformer_k auc
         """
 
-
         if not self.subtyping:
             eval_accuracy_metric = tf.keras.metrics.BinaryAccuracy()
         else:
@@ -380,7 +382,6 @@ class CHARM:
             auc = roc_auc_score(y_true, y_pred, average="macro")
             print("AUC {}".format(auc))
 
-            mF1_0 = f1_score(y_true, y_pred, average='macro')
-            print("Fscore: %.4f" % (float(mF1_0),))
+
 
         return test_acc, auc
