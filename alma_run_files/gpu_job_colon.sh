@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=test_gpu
-#SBATCH --output=/home/ofourkioti/Projects/SAD_MIL/camelyon_results/colon_sb.txt
-#SBATCH --error=/home/ofourkioti/Projects/SAD_MIL/camelyon_results/error.err
+#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/results/colon_sb.txt
+#SBATCH --error=/home/ofourkioti/Projects/camil_clustering/results/error.err
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=48:00:00
