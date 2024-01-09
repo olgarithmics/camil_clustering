@@ -60,28 +60,27 @@ class CHARM:
         }
         dense = self.dense(self.inputs['bag'])
 
-        # encoder_output = self.nyst_att(tf.expand_dims(dense, axis=0), return_attn=False)
-        # xg = tf.ensure_shape(tf.squeeze(encoder_output), [None, 512])
-        #
-        # encoder_output = xg + dense
-        #
-        # attention_matrix = CustomAttention(weight_params_dim=256)(encoder_output)
-        # norm_alpha, alpha = NeighborAggregator(output_dim=1, name="alpha")([attention_matrix, self.inputs["adjacency_matrix"]])
-        # value = self.wv(dense)
-        # xl = multiply([norm_alpha, value], name="mul_1")
-        #
-        # wei = tf.math.sigmoid(xl)
-        # xo = xl * wei + encoder_output * (1-wei)
+        encoder_output = self.nyst_att(tf.expand_dims(dense, axis=0), return_attn=False)
+        xg = tf.ensure_shape(tf.squeeze(encoder_output), [None, 512])
+
+        encoder_output = xg + dense
+
+        attention_matrix = CustomAttention(weight_params_dim=256)(encoder_output)
+        norm_alpha, alpha = NeighborAggregator(output_dim=1, name="alpha")([attention_matrix, self.inputs["adjacency_matrix"]])
+        value = self.wv(dense)
+        xl = multiply([norm_alpha, value], name="mul_1")
+
+        wei = tf.math.sigmoid(xl)
+        xo = xl * wei + encoder_output * (1-wei)
 
         #encoder_output = xl + dense
 
-        # k_alpha = self.attcls(xo)
-        # attn_output = tf.matmul (k_alpha ,xo,transpose_a=True)
+        k_alpha = self.attcls(xo)
+        attn_output = tf.matmul (k_alpha, xo, transpose_a=True)
 
-        #logits = self.classifier(attn_output)
-        logits= Feature_pooling(output_dim=1, pooling_mode = self.pooling)(dense)
+        logits = self.classifier(attn_output)
 
-        self.net = Model(inputs=[self.inputs['bag'], self.inputs["adjacency_matrix"], self.inputs["g_t"]], outputs=[logits, logits, logits])
+        self.net = Model(inputs=[self.inputs['bag'], self.inputs["adjacency_matrix"], self.inputs["g_t"]], outputs=[logits, attn_output, k_alpha])
 
     @property
     def model(self):
@@ -158,7 +157,6 @@ class CHARM:
             top_n = tf.gather(attn_output, top_n_ids, axis=0)
 
             all_instances = tf.concat([top_p, top_n], axis=0)
-
             all_instances_logits=classifier(all_instances)
 
             p_targets = tf.ones(self.k_sample)
@@ -180,7 +178,6 @@ class CHARM:
 
             return loss
 
-
         @tf.function(experimental_relax_shapes=True)
         def train_step(x, y):
             with tf.GradientTape() as tape:
@@ -188,19 +185,19 @@ class CHARM:
                 one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
 
                 total_inst_loss=0
-                # for i in range(self.n_classes):
-                #     inst_label = tf.gather(one_hot_label, i, axis=1)
-                #     if self.single_branch:
-                #         loss = tf.cond(tf.equal(tf.squeeze(inst_label),1),
-                #                 lambda : inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-                #                 lambda : tf.cast(0, tf.float32) )
-                #     else:
-                #         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
-                #                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-                #                        lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
-                #
-                #
-                #     total_inst_loss += loss
+                for i in range(self.n_classes):
+                    inst_label = tf.gather(one_hot_label, i, axis=1)
+                    if self.single_branch:
+                        loss = tf.cond(tf.equal(tf.squeeze(inst_label),1),
+                                lambda : inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+                                lambda : tf.cast(0, tf.float32))
+                    else:
+                        loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
+                                       lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+                                       lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
+
+
+                    total_inst_loss += loss
 
                 if self.subtyping:
                     total_inst_loss /= len(self.instance_classifiers)
@@ -228,19 +225,19 @@ class CHARM:
             one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
 
             total_inst_loss = 0
-            # for i in range(self.n_classes):
-            #     inst_label = tf.gather(one_hot_label, i, axis=1)
-            #
-            #     if self.single_branch:
-            #         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
-            #                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-            #                        lambda: tf.cast(0, tf.float32))
-            #     else:
-            #         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
-            #                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
-            #                        lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
-            #
-            #     total_inst_loss += loss
+            for i in range(self.n_classes):
+                inst_label = tf.gather(one_hot_label, i, axis=1)
+
+                if self.single_branch:
+                    loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
+                                   lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+                                   lambda: tf.cast(0, tf.float32))
+                else:
+                    loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
+                                   lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
+                                   lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
+
+                total_inst_loss += loss
 
             if self.subtyping:
                 total_inst_loss /= len(self.instance_classifiers)
