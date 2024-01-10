@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=test_gpu
-#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/results/colon_mb.txt
+#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/results/colon_mb_test.txt
 #SBATCH --error=/home/ofourkioti/Projects/camil_clustering/results/error.err
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8

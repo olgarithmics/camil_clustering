@@ -54,16 +54,13 @@ if __name__ == "__main__":
 
     test_bags = references.apply(lambda row: func_val(row.test), axis=1).dropna().values.tolist()
 
-    train_net = CHARM(args)
-
-    train_net.train(train_bags, fold_id, val_bags, args)
+    # train_net = CHARM(args)
+    #
+    # train_net.train(train_bags, fold_id, val_bags, args)
 
     test_net = CHARM(args)
 
-    test_acc, test_auc = test_net.predict(test_bags,
-                                                        fold_id,
-                                                        args,
-                                                        test_model=test_net.model)
+    test_acc, test_auc = test_net.predict(test_bags, fold_id, args, test_model=test_net.model)
 
 
 
