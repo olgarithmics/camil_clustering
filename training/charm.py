@@ -148,7 +148,6 @@ class CHARM:
             train_acc_metric = tf.keras.metrics.Accuracy()
             val_acc_metric = tf.keras.metrics.Accuracy()
 
-
         def inst_eval(k_alpha,attn_output, classifier):
             top_p, top_p_ids = tf.math.top_k(k_alpha[:, -1], k=self.k_sample, sorted=True)
             top_p = tf.gather(attn_output, top_p_ids, axis=0)
@@ -157,7 +156,7 @@ class CHARM:
             top_n = tf.gather(attn_output, top_n_ids, axis=0)
 
             all_instances = tf.concat([top_p, top_n], axis=0)
-            all_instances_logits=classifier(all_instances)
+            all_instances_logits = classifier(all_instances)
 
             p_targets = tf.ones(self.k_sample)
             n_targets = tf.zeros(self.k_sample)
@@ -195,7 +194,6 @@ class CHARM:
                         loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
                                        lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
                                        lambda: inst_eval_out(k_alpha, attn_output, self.instance_classifiers[i]))
-
 
                     total_inst_loss += loss
 
@@ -359,6 +357,9 @@ class CHARM:
             y_pred = np.reshape(y_pred, (-1, self.n_classes))
             # auc_0 = roc_auc_score(y_true, y_pred, average="macro", multi_class='ovr')
 
+            macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred[:, 1], y_true)
+            print(macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0)
+
             auc = roc_auc_score(y_true, y_pred[:, 1], average="macro")
             print("AUC {}".format(auc))
 
@@ -368,6 +369,7 @@ class CHARM:
             y_pred = np.argmax(y_pred, axis=1)
             mF1_0 = f1_score(y_true, y_pred, average='macro')
             print("Fscore: %.4f" % (float(mF1_0),))
+
 
         else:
             macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred, y_true)
