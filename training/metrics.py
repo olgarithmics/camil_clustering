@@ -15,10 +15,11 @@ def optimal_thresh(fpr, tpr, thresholds, p=0):
 def eval_metric(oprob, label):
 
     auc, threshold = roc_threshold(label, oprob)
+    print (threshold)
 
-    prob = oprob > 0.5
+    prob = oprob > int(0)
 
-    label = label > 0.5
+    label = label > int(0)
 
     TP = np.sum(prob.ravel() & label.ravel(), axis=0)
 
