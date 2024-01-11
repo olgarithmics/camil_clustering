@@ -388,10 +388,9 @@ class CHARM:
             auc = roc_auc_score(y_true, y_pred, average="macro")
             print("AUC {}".format(auc))
 
-            y_pred = np.argmax(y_pred, axis=1)
 
             y_pred = y_pred.ravel()
-            print (y_pred)
+            y_pred = np.clip(y_pred, 0, 1)
             mF1_0 = f1_score(y_true, y_pred)
             print("Fscore: %.4f" % (float(mF1_0),))
 
