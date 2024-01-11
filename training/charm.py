@@ -370,9 +370,14 @@ class CHARM:
             print("Test acc: %.4f" % (float(test_acc),))
 
             y_pred = np.argmax(y_pred, axis=1)
-            mF1_0 = f1_score(y_true, y_pred, average='macro')
+            mF1_0 = f1_score(y_true, y_pred)
             print("Fscore: %.4f" % (float(mF1_0),))
 
+            recall = recall_score(y_true, y_pred)
+            print("recall: %.4f" % (float(recall),))
+
+            precision = precision_score(y_true, y_pred)
+            print("precision: %.4f" % (float(precision),))
 
         else:
             macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred, y_true)
@@ -384,6 +389,15 @@ class CHARM:
 
             auc = roc_auc_score(y_true, y_pred, average="macro")
             print("AUC {}".format(auc))
+
+            mF1_0 = f1_score(y_true, y_pred)
+            print("Fscore: %.4f" % (float(mF1_0),))
+
+            recall = recall_score(y_true, y_pred)
+            print("recall: %.4f" % (float(recall),))
+
+            precision = precision_score(y_true, y_pred)
+            print("precision: %.4f" % (float(precision),))
 
 
 
