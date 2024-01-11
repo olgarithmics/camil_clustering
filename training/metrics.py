@@ -16,9 +16,9 @@ def eval_metric(oprob, label):
 
     auc, threshold = roc_threshold(label, oprob)
 
-    prob = oprob > threshold
+    prob = oprob > 0.5
 
-    label = label > threshold
+    label = label > 0.5
 
     TP = np.sum(prob.ravel() & label.ravel(), axis=0)
 

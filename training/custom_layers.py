@@ -444,7 +444,7 @@ class Feature_pooling(tf.keras.layers.Layer):
         n, d = x.shape
 
         # do-pooling operator
-        x = K.max(x, axis=0, keepdims=True)
+        x = K.mean(x, axis=0, keepdims=True)
         #output = K.mean(x, axis=0, keepdims=True)
 
         # compute bag-level score
