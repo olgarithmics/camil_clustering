@@ -360,8 +360,6 @@ class CHARM:
             macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred[:, 1], y_true)
             print(macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0)
 
-            print("recall {}".format(mrecal_0))
-            print("precision {}".format(mprec_0))
 
             auc = roc_auc_score(y_true, y_pred[:, 1], average="macro")
             print("AUC {}".format(auc))
