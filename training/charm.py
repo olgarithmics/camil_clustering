@@ -388,9 +388,9 @@ class CHARM:
             auc = roc_auc_score(y_true, y_pred, average="macro")
             print("AUC {}".format(auc))
 
+            y_pred = np.array(y_pred).ravel()
+            y_pred= tf.round(tf.nn.sigmoid(y_pred))
 
-            y_pred = y_pred.ravel()
-            y_pred = np.clip(y_pred, 0, 1)
             mF1_0 = f1_score(y_true, y_pred)
             print("Fscore: %.4f" % (float(mF1_0),))
 
