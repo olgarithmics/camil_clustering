@@ -18,7 +18,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train Graph Att net')
 
     parser.add_argument('--dataset', dest='dataset',help='select dataset',choices=["camelyon","tcga", 'sarcoma'],default="camelyon", type=str)
-    parser.add_argument('--save_dir', dest='save_dir',help='directory where the weights of the model are stored',default="camelyon_Saved_model", type=str)
+    parser.add_argument('--save_dir', dest='save_dir',help='directory where the weights of the model are stored',default="Saved_model", type=str)
     parser.add_argument('--simclr_path', dest='simclr_path',help='directory where the images are stored',default="camelyon_SIMCLR_checkpoints", type=str)
     parser.add_argument('--lr', dest='init_lr',help='initial learning rate',default=0.0002, type=float)
     parser.add_argument('--decay', dest='weight_decay',help='weight decay',default=1e-5, type=float)
