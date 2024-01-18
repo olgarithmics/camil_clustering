@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=test_gpu
-#SBATCH --output=/home/ofourkioti/Projects/camil_clutering/camelyon_results/lipo.txt
-#SBATCH --error=/home/ofourkioti/Projects/camil_clutering/camelyon_results/error.err
+#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/camelyon_results/lipo.txt
+#SBATCH --error=/home/ofourkioti/Projects/camil_clustering/camelyon_results/error.err
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
 #SBATCH --time=12:00:00
@@ -12,7 +12,7 @@ module use /opt/software/easybuild/modules/all/
 module load Mamba
 source ~/.bashrc
 conda activate exp_env
-cd /home/ofourkioti/Projects/camil_clutering/
+cd /home/ofourkioti/Projects/camil_clustering/
 
 
 python run.py  --experiment_name lipo --feature_path /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/SAR/feats/h5_files --label_file label_files/multi_lipo.csv --csv_files lipo_splits  --epoch 100 --save_dir SAR_Saved_model
