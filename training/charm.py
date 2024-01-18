@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, accuracy_score
 import tensorflow as tf
 from tensorflow.keras.callbacks import CallbackList
 from training.custom_callbacks import CustomReduceLRoP
@@ -38,6 +38,7 @@ class CHARM:
         self.subtyping = args.subtyping
         self.k_sample = args.k_sample
         self.n_classes = args.n_classes
+        self.multi_label=True
 
         self.dense = tf.keras.layers.Dense(512, activation='relu')
 
@@ -46,6 +47,8 @@ class CHARM:
 
         if self.single_branch:
             self.classifier=tf.keras.layers.Dense(1)
+        elif self.multi_label:
+            self.classifier = tf.keras.layers.Dense(self.n_classes, activation='sigmoid')
         else:
             self.classifier = tf.keras.layers.Dense(self.n_classes)
 
@@ -56,27 +59,27 @@ class CHARM:
         self.inputs = {
             'bag': Input(self.input_shape),
             'adjacency_matrix': Input(shape=(None, None), dtype='float32', name='adjacency_matrix', sparse=True),
-            'g_t': Input(shape=(1,), name='g_t')
+            'g_t': Input(shape=(2,), name='g_t')
         }
         dense = self.dense(self.inputs['bag'])
 
-        encoder_output = self.nyst_att(tf.expand_dims(dense, axis=0), return_attn=False)
-        xg = tf.ensure_shape(tf.squeeze(encoder_output), [None, 512])
-
-        encoder_output = xg + dense
-
-        attention_matrix = CustomAttention(weight_params_dim=256)(encoder_output)
-        norm_alpha, alpha = NeighborAggregator(output_dim=1, name="alpha")([attention_matrix, self.inputs["adjacency_matrix"]])
-        value = self.wv(dense)
-        xl = multiply([norm_alpha, value], name="mul_1")
-
-        wei = tf.math.sigmoid(xl)
-        xo = xl * wei + encoder_output * (1-wei)
+        # encoder_output = self.nyst_att(tf.expand_dims(dense, axis=0), return_attn=False)
+        # xg = tf.ensure_shape(tf.squeeze(encoder_output), [None, 512])
+        #
+        # encoder_output = xg + dense
+        #
+        # attention_matrix = CustomAttention(weight_params_dim=256)(encoder_output)
+        # norm_alpha, alpha = NeighborAggregator(output_dim=1, name="alpha")([attention_matrix, self.inputs["adjacency_matrix"]])
+        # value = self.wv(dense)
+        # xl = multiply([norm_alpha, value], name="mul_1")
+        #
+        # wei = tf.math.sigmoid(xl)
+        # xo = xl * wei + encoder_output * (1-wei)
 
         #encoder_output = xl + dense
 
-        k_alpha = self.attcls(xo)
-        attn_output = tf.matmul (k_alpha, xo, transpose_a=True)
+        k_alpha = self.attcls(dense)
+        attn_output = tf.matmul (k_alpha, dense, transpose_a=True)
 
         logits = self.classifier(attn_output)
 
@@ -139,14 +142,19 @@ class CHARM:
         train_loss_tracker = tf.keras.metrics.Mean()
         val_loss_tracker = tf.keras.metrics.Mean()
         instance_loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        if not self.subtyping:
-            loss_fn = BinaryCrossentropy(from_logits=True)
-            train_acc_metric = tf.keras.metrics.BinaryAccuracy()
-            val_acc_metric = tf.keras.metrics.BinaryAccuracy()
-        else:
+        if self.subtyping:
             loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             train_acc_metric = tf.keras.metrics.Accuracy()
             val_acc_metric = tf.keras.metrics.Accuracy()
+
+        elif self.multi_label:
+            loss_fn = BinaryCrossentropy(from_logits=False)
+            train_acc_metric = tf.keras.metrics.Accuracy()
+            val_acc_metric = tf.keras.metrics.Accuracy()
+        else:
+            loss_fn = BinaryCrossentropy(from_logits=True)
+            train_acc_metric = tf.keras.metrics.BinaryAccuracy()
+            val_acc_metric = tf.keras.metrics.BinaryAccuracy()
 
         def inst_eval(k_alpha,attn_output, classifier):
             top_p, top_p_ids = tf.math.top_k(k_alpha[:, -1], k=self.k_sample, sorted=True)
@@ -181,12 +189,17 @@ class CHARM:
         def train_step(x, y):
             with tf.GradientTape() as tape:
                 logits, attn_output, k_alpha = self.net(x, training=True)
-                one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
+
+
+                if not self.multi_label:
+                    one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
+                else:
+                    one_hot_label = y
 
                 total_inst_loss=0
                 for i in range(self.n_classes):
                     inst_label = tf.gather(one_hot_label, i, axis=1)
-                    if self.single_branch:
+                    if self.single_branch or self.multi_label:
                         loss = tf.cond(tf.equal(tf.squeeze(inst_label),1),
                                 lambda : inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
                                 lambda : tf.cast(0, tf.float32))
@@ -220,13 +233,22 @@ class CHARM:
         def val_step(x, y):
 
             logits, attn_output, k_alpha = self.net(x, training=False)
-            one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
+
+            if not self.multi_label:
+                one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
+            else:
+                one_hot_label = y
 
             total_inst_loss = 0
             for i in range(self.n_classes):
                 inst_label = tf.gather(one_hot_label, i, axis=1)
 
-                if self.single_branch:
+                if not self.multi_label:
+                    one_hot_label = tf.one_hot(tf.cast(y, tf.int32), 2)
+                else:
+                    one_hot_label = y
+
+                if self.single_branch or self.multi_label:
                     loss = tf.cond(tf.equal(tf.squeeze(inst_label), 1),
                                    lambda: inst_eval(k_alpha, attn_output, self.instance_classifiers[i]),
                                    lambda: tf.cast(0, tf.float32))
@@ -266,7 +288,8 @@ class CHARM:
 
                 callbacks.on_batch_begin(step, logs=logs)
                 callbacks.on_train_batch_begin(step, logs=logs)
-                train_dict = train_step([x_batch_train, tf.expand_dims(y_batch_train,axis=0)], np.expand_dims(y_batch_train, axis=0))
+
+                train_dict = train_step([x_batch_train, tf.expand_dims(y_batch_train,axis=0)], tf.expand_dims(y_batch_train,axis=0))
 
                 logs["train_loss"] = train_dict["train_loss"]
 
@@ -320,10 +343,10 @@ class CHARM:
         auc       : float reffering to the transformer_k auc
         """
 
-        if not self.subtyping:
-            eval_accuracy_metric = tf.keras.metrics.BinaryAccuracy()
-        else:
+        if  self.subtyping or self.multi_label:
             eval_accuracy_metric = tf.keras.metrics.Accuracy()
+        else:
+            eval_accuracy_metric = tf.keras.metrics.BinaryAccuracy()
 
         checkpoint_path = os.path.join(os.path.join(args.save_dir, fold, args.experiment_name),
                                        "{}.ckpt".format(args.experiment_name))
@@ -333,16 +356,19 @@ class CHARM:
 
         @tf.function(experimental_relax_shapes=True)
         def test_step(images, labels):
+            #pred, attn_output, k_alpha = test_model([images,tf.expand_dims(labels,axis=0)], training=False)
 
-            pred, attn_output, k_alpha= test_model([images,tf.expand_dims(labels,axis=0)], training=False)
-            if self.subtyping:
-                eval_accuracy_metric.update_state(labels, tf.argmax(pred, 1))
-            else:
-                eval_accuracy_metric.update_state(labels, pred)
+            pred, attn_output, k_alpha = test_model([images, labels], training=False)
+
+            # if self.subtyping or self.multi_label:
+            #     eval_accuracy_metric.update_state(labels, tf.argmax(pred, 1))
+            # else:
+            #     eval_accuracy_metric.update_state(labels, pred)
             return pred
 
         y_pred = []
         y_true = []
+
         os.makedirs(args.raw_save_dir, exist_ok=True)
 
         for enum, (x_batch_val, y_batch_val) in enumerate(test_gen):
@@ -350,16 +376,23 @@ class CHARM:
             # pred= test_step(x_batch_val, np.expand_dims(y_batch_val, axis=0))y
             pred = test_step(x_batch_val, np.expand_dims(y_batch_val, axis=0))
 
-            y_true.append(np.expand_dims(y_batch_val, axis=0))
-            y_pred.append(pred.numpy().tolist()[0])
+
+            if not self.multi_label:
+                y_true.append(np.expand_dims(y_batch_val, axis=0))
+                y_pred.append(pred.numpy().tolist())
+
+            else:
+                y_true.append((y_batch_val.tolist()))
+                y_true_array= np.vstack(y_true)
+                y_pred.append(pred.numpy().tolist())
+                y_pred_array = np.vstack(y_pred)
 
         if self.subtyping:
             y_pred = np.reshape(y_pred, (-1, self.n_classes))
             # auc_0 = roc_auc_score(y_true, y_pred, average="macro", multi_class='ovr')
 
-            macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred[:, 1], y_true)
-            print(macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0)
-
+            # macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred[:, 1], y_true)
+            # print(macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0)
 
             auc = roc_auc_score(y_true, y_pred[:, 1], average="macro")
             print("AUC {}".format(auc))
@@ -376,6 +409,28 @@ class CHARM:
 
             precision = precision_score(y_true, y_pred)
             print("precision: %.4f" % (float(precision),))
+
+        elif self.multi_label:
+
+            auc = roc_auc_score(y_true_array, y_pred_array, average=None)
+            print("AUC {}".format(np.mean(auc)))
+
+            pred = [[1 if prob >= 0.5 else 0 for prob in instance[0]] for instance in
+                                y_pred]
+
+            test_acc= accuracy_score (y_true_array, pred, normalize=True)
+            print("Test acc: %.4f" % (float(test_acc),))
+
+            precision = precision_score(y_true=y_true_array, y_pred=pred, average='samples')
+            print("precision: %.4f" % (float(precision),))
+
+            recall = recall_score(y_true_array, pred, average='samples')
+            print("recall: %.4f" % (float(recall),))
+
+            mF1_0 = f1_score(y_true=y_true_array, y_pred=pred, average='samples')
+            print("Fscore: %.4f" % (float(mF1_0),))
+
+
 
         else:
             macc_0, mprec_0, mrecal_0, mspec_0, mF1_0, auc_0 = eval_metric(y_pred, y_true)
