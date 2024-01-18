@@ -78,7 +78,13 @@ class DataGenerator(tf.keras.utils.Sequence):
 
                 references = pd.read_csv(self.label_file)
 
-                bag_label = references["slide_label"].loc[references["slide_id"] == base_name].values.tolist()[0]
+                #bag_label = references["slide_label"].loc[references["slide_id"] == base_name].values.tolist()[0]
+
+                slide_label_0 = references["slide_label_0"].loc[references["slide_id"] == base_name].values.tolist()[0]
+                slide_label_1 = references["slide_label_1"].loc[references["slide_id"] == base_name].values.tolist()[0]
+
+                # Create a NumPy array with binary values for each label
+                bag_label = [slide_label_0, slide_label_1 ]
 
         #sparse_matrix = self.get_affinity(neighbor_indices[:, :4])
 
