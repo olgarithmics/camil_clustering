@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=test_gpu
-#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/results/lipo.txt
+#SBATCH --output=/home/ofourkioti/Projects/camil_clustering/results/lipo_e4.txt
 #SBATCH --error=/home/ofourkioti/Projects/camil_clustering/results/error.err
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
@@ -16,6 +16,6 @@ cd /home/ofourkioti/Projects/camil_clustering/
 
 
 for i in {0..4};
-do python run.py  --experiment_name lipo --feature_path /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/SAR/feats/h5_files --label_file label_files/multi_lipo.csv --csv_file lipo_csv_splits/splits_${i}.csv  --epoch 100 --save_dir SAR_Saved_model;
+do python run.py  --experiment_name lipo_e4 --feature_path /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/SAR/feats/h5_files --label_file label_files/multi_lipo.csv --csv_file lipo_csv_splits/splits_${i}.csv  --epoch 100 --save_dir SAR_Saved_model --lr 0.0001;
 done
 
