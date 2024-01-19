@@ -272,7 +272,7 @@ class CHARM:
                 val_acc_metric.update_state(y, tf.argmax(logits, 1))
             return val_loss
 
-        early_stopping = 10
+        early_stopping = 20
         loss_history = deque(maxlen=early_stopping + 1)
         reduce_rl_plateau.on_train_begin()
         for epoch in range(args.epochs):
