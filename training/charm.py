@@ -149,8 +149,8 @@ class CHARM:
 
         elif self.multi_label:
             loss_fn = BinaryCrossentropy(from_logits=False)
-            train_acc_metric = tf.keras.metrics.Accuracy()
-            val_acc_metric = tf.keras.metrics.Accuracy()
+            train_acc_metric = tf.keras.metrics.BinaryAccuracy()
+            val_acc_metric = tf.keras.metrics.BinaryAccuracy()
         else:
             loss_fn = BinaryCrossentropy(from_logits=True)
             train_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -412,6 +412,7 @@ class CHARM:
 
         elif self.multi_label:
 
+            #print (y_pred, y_true_array)
             auc = roc_auc_score(y_true_array, y_pred_array, average=None)
             print("AUC {}".format(np.mean(auc)))
 
