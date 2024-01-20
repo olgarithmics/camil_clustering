@@ -13,4 +13,4 @@
 #srun rsync -avP   /data/rds/DBI/DUDBI/DYNCESYS/OlgaF/lipos_flat/* /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/lipos/flat/
 #srun rsync -avP   /data/rds/DBI/DUDBI/DYNCESYS/OlgaF/lipos_flat/* /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/lipos/flat/
 
-srun rsync -avP  /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/rcc/feats/* /data/rds/DBI/DUDBI/DYNCESYS/OlgaF/tmi/rcc/
+srun rsync -avP  /data/scratch/DBI/DUDBI/DYNCESYS/OlgaF/tmi/colon_feats/* /data/rds/DBI/DUDBI/DYNCESYS/OlgaF/tmi/Colonoscopy/
